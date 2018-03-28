@@ -125,7 +125,7 @@ rule link:
     run:
         for fastq_file in input:
             bn = os.path.basename(fastq_file)
-            shell('ln -s {fastq_file} {params.outdir}/{bn}')
+            shell('echo \'ln -s {fastq_file} {params.outdir}/{bn}\'')
 
 for fc in list_fc_names(data_dir):
     rule:
