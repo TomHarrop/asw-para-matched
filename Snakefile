@@ -36,7 +36,7 @@ def find_key_files(wildcards):
     return(all_key_files)
 
 
-def find_read_file(wildcards):
+def find_read_file(fc):
     '''
     Return the fastq.gz file that matches wildcards.fc
     '''
@@ -46,7 +46,7 @@ def find_read_file(wildcards):
     for dirpath, filenames in data_dir_files:
         for filename in filenames:
             if (filename.endswith('.fastq.gz')
-                    and wildcards.fc_name in filename):
+                    and fc in filename):
                 return(os.path.join(dirpath, filename))
 
 
@@ -81,7 +81,7 @@ def read_key_and_write_keydata(key_file, outdir):
     output_df = subset.rename(columns={'sample': 'agr_sample_name'})
     output_df.to_csv(my_path,
                      sep=',',
-                     header=False,
+                     header=True,
                      index=False)
 
 
@@ -114,31 +114,33 @@ rule target:
     input:
         dynamic(expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
                 fc_name=list_fc_names(data_dir)))
+    
 
 # 020 demux
-rule demux:
-    input:
-        config = 'output/010_config/{fc_name}_config',
-        reads = find_read_file
-    output:
-        dynamic('output/020_demux/{fc_name}/{individual}.fq.gz')
-    params:
-        outdir = 'output/020_demux/{fc_name}'
-    threads:
-        1
-    log:
-        'output/logs/020_demux/{fc_name}.log'
-    shell:
-        'process_radtags '
-        '-f {input.reads} '
-        '-i gzfastq -y gzfastq '
-        '-b {input.config} '
-        '-o {params.outdir} '
-        '-c -q '
-        '-t 91 '
-        '--inline_null '
-        '--renz_1 apeKI --renz_2 mspI '
-        '&> {log} '
+for fc in list_fc_names(data_dir):
+    rule:
+        input:
+            config = 'output/010_config/{}_config'.format(fc),
+            reads = find_read_file(fc)
+        output:
+            dynamic('output/020_demux/{}/{{individual}}.fq.gz'.format(fc))
+        params:
+            outdir = 'output/020_demux/{}'.format(fc)
+        threads:
+            1
+        log:
+            'output/logs/020_demux/{}.log'.format(fc)
+        shell:
+            'process_radtags '
+            '-f {input.reads} '
+            '-i gzfastq -y gzfastq '
+            '-b {input.config} '
+            '-o {params.outdir} '
+            '-c -q '
+            '-t 91 '
+            '--inline_null '
+            '--renz_1 apeKI --renz_2 mspI '
+            '&> {log} '
 
 # 010 generate stacks config
 rule generate_config_files:
