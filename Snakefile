@@ -119,21 +119,19 @@ rule target:
         dynamic('output/020_demux/all/{individual}.fq.gz')
 
 # 020 demux
-rule link:
-    input:
-        expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
-               fc_name=list_fc_names(data_dir))
-    output:
-        'output/020_demux/all/{individual}.fq.gz'
-    params:
-        outdir = 'output/020_demux/all'
-    shell:
-        'ln -s '
-        '$(readlink -f {input}) '
-        '$(readlink -f {output})'
-
-
 for fc in list_fc_names(data_dir):
+    rule:
+        input:
+            'output/020_demux/{}/{{individual}}.fq.gz'.format(fc)
+        output:
+            'output/020_demux/all/{individual}.fq.gz'
+        params:
+            outdir = 'output/020_demux/all'
+        shell:
+            'ln -s '
+            '$(readlink -f {input}) '
+            '$(readlink -f {output})'
+
     rule:
         input:
             config = 'output/010_config/{}_config'.format(fc),
