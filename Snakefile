@@ -86,14 +86,14 @@ def read_key_and_write_keydata(key_file, outdir):
 
 
 def read_keydata_and_write_config(keydata, outdir):
-    my_filename = re.sub('_keydata.csv', '_config', os.path.basename(key_file))
+    my_filename = re.sub('_keydata.csv', '_config', os.path.basename(keydata))
     my_path = os.path.join(outdir, my_filename)
     # read keyfile
-    key_data = pandas.read_csv(key_file, delimiter=',')
+    key_data = pandas.read_csv(keydata, delimiter=',')
     key_data.dropna(how='all', inplace=True)
     # write the columns of interest to an output file
     keep_columns = ['barcode', 'sample_name']
-    output_df = filtered_keydata[keep_columns]
+    output_df = key_data[keep_columns]
     output_df.to_csv(my_path,
                      sep='\t',
                      header=False,
@@ -104,7 +104,7 @@ def read_keydata_and_write_config(keydata, outdir):
 # GLOBALS #
 ###########
 
-data_dir = 'data/asw_para_matched'
+data_dir = 'data/test_data'
 
 #########
 # RULES #
