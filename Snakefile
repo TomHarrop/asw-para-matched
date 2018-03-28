@@ -127,11 +127,10 @@ rule link:
         'output/020_demux/all/{individual}.fq.gz'
     params:
         outdir = 'output/020_demux/all'
-    run:
-        my_input = get_full_path(input)
-        my_output = get_full_path(output)
-        shell('echo \'ln -s {my_input} {my_input}\'')
-        shell('ln -s {my_input} {my_input}')
+    shell:
+        'ln -s '
+        '$(readlink -f {input}) '
+        '$(readlink -f {output})'
 
 
 for fc in list_fc_names(data_dir):
