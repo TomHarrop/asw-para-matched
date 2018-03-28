@@ -58,13 +58,13 @@ def list_fc_names(data_dir):
         [os.path.splitext(os.path.basename(x))[0] for x in find_key_files('')])
 
 
-def read_key_and_write_config(key_file, outdir):
+def read_key_and_write_keydata(key_file, outdir):
     '''
-    Read the key_file, fix the sample names, and write a csv of barcode to
-    sample name to outdir
+    Read the key_file, fix the sample names, and write a csv of keydata to
+    outdir
     '''
     # generate filename
-    my_filename = re.sub('\\.txt$', '_config', os.path.basename(key_file))
+    my_filename = re.sub('\\.txt$', '_keydata.csv', os.path.basename(key_file))
     my_path = os.path.join(outdir, my_filename)
     # read keyfile
     key_data = pandas.read_csv(key_file, delimiter='\t')
@@ -74,13 +74,30 @@ def read_key_and_write_config(key_file, outdir):
         list(not x.startswith('O') for x in key_data['sample'])]
     # remove asterisks and '-H' from sample names
     filtered_keydata['sample_name'] = filtered_keydata['sample'].apply(
-        fix_sample_names)
-    # write the two columns of interest to an output file
-    subset = filtered_keydata[['barcode', 'sample_name']]
-    subset.to_csv(my_path,
-                  sep='\t',
-                  header=False,
-                  index=False)
+    fix_sample_names)
+    # write the columns of interest to an output file
+    keep_columns = ['flowcell', 'lane', 'barcode', 'sample', 'sample_name']
+    subset = filtered_keydata[keep_columns]
+    output_df = subset.rename(columns={'sample': 'agr_sample_name'})
+    output_df.to_csv(my_path,
+                     sep=',',
+                     header=False,
+                     index=False)
+
+
+def read_keydata_and_write_config(keydata, outdir):
+    my_filename = re.sub('_keydata.csv', '_config', os.path.basename(key_file))
+    my_path = os.path.join(outdir, my_filename)
+    # read keyfile
+    key_data = pandas.read_csv(key_file, delimiter=',')
+    key_data.dropna(how='all', inplace=True)
+    # write the columns of interest to an output file
+    keep_columns = ['barcode', 'sample_name']
+    output_df = filtered_keydata[keep_columns]
+    output_df.to_csv(my_path,
+                     sep='\t',
+                     header=False,
+                     index=False)
 
 
 ###########
@@ -98,6 +115,7 @@ rule target:
         dynamic(expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
                 fc_name=list_fc_names(data_dir)))
 
+# 020 demux
 rule demux:
     input:
         config = 'output/010_config/{fc_name}_config',
@@ -122,10 +140,10 @@ rule demux:
         '--renz_1 apeKI --renz_2 mspI '
         '&> {log} '
 
-
+# 010 generate stacks config
 rule generate_config_files:
     input:
-        find_key_files
+        key_file = 'output/010_config/{fc_name}_keydata.csv'
     threads:
             1
     output:
@@ -133,5 +151,17 @@ rule generate_config_files:
     params:
         outdir = 'output/010_config'
     run:
-        for key_file in input:
-            read_key_and_write_config(key_file, params.outdir)
+        read_keydata_and_write_config(input.key_file, params.outdir)
+
+rule read_key_data:
+    input:
+        key_file = 'data/asw_para_matched/{fc_name}.txt'
+    threads:
+            1
+    output:
+        'output/010_config/{fc_name}_keydata.csv'
+    params:
+        outdir = 'output/010_config'
+    run:
+        read_key_and_write_keydata(input.key_file, params.outdir)
+
