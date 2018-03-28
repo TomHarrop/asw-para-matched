@@ -123,9 +123,10 @@ rule link:
     params:
         outdir = 'output/020_demux/all'
     run:
+        print(input)
         for fastq_file in input:
             bn = os.path.basename(fastq_file)
-            shell('echo \'ln -s {fastq_file} {params.outdir}/{bn}\'')
+            shell('ln -s {fastq_file} {params.outdir}/{bn}')
 
 for fc in list_fc_names(data_dir):
     rule:
