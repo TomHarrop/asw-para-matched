@@ -109,14 +109,24 @@ data_dir = 'data/test_data'
 #########
 # RULES #
 #########
-
 rule target:
     input:
-        dynamic(expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
-                fc_name=list_fc_names(data_dir)))
-    
+        dynamic('output/020_demux/all/{individual}.fq.gz')
 
 # 020 demux
+rule link:
+    input:
+        expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
+               fc_name=list_fc_names(data_dir))
+    output:
+        'output/020_demux/all/{individual}.fq.gz'
+    params:
+        outdir = 'output/020_demux/all'
+    run:
+        for fastq_file in input:
+            bn = os.path.basename(fastq_file)
+            shell('ln -s {fastq_file} {params.outdir}/{bn}')
+
 for fc in list_fc_names(data_dir):
     rule:
         input:
