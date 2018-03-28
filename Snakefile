@@ -89,8 +89,8 @@ def read_keydata_and_write_config(key_file, outdir):
 # GLOBALS #
 ###########
 
-data_dir = 'data/test_data'
-key_file = 'data/test_data/combined_key_data.csv'
+data_dir = 'data/asw_para_matched'
+key_file = 'data/asw_para_matched/combined_key_data.csv'
 
 #########
 # SETUP #
