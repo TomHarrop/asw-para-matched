@@ -123,37 +123,6 @@ rule demux:
         '&> {log} '
 
 
-
-# for fc in list_fc_names(data_dir):
-#     my_config_file = 'output/010_config/{}_config'.format(fc)
-#     my_read_file = find_read_file(fc, data_dir)
-#     my_outdir = 'output/020_demux/{}'.format(fc)
-#     my_output_files = 'output/020_demux/{}/{{individual}}.fq.gz'.format(fc)
-#     rule:
-#         input:
-#             config = my_config_file,
-#             reads = my_read_file
-#         output:
-#             dynamic(my_output_files)
-#         params:
-#             outdir = my_outdir
-#         threads:
-#             1
-#         log:
-#             'output/logs/020_demux/{}.log'.format(fc)
-#         shell:
-#             'process_radtags '
-#             '-f {input.reads} '
-#             '-i gzfastq -y gzfastq '
-#             '-b {input.config} '
-#             '-o {params.outdir} '
-#             '-c -q '
-#             '-t 91 '
-#             '--inline_null '
-#             '--renz_1 apeKI --renz_2 mspI '
-#             '&> {log} '
-
-
 rule generate_config_files:
     input:
         find_key_files
