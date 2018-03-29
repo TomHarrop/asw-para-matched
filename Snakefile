@@ -2,166 +2,127 @@
 
 import os
 import pandas
-import re
-
 
 #############
 # FUNCTIONS #
 #############
 
-def fix_sample_names(sample_name):
-    '''
-    Remove -H suffix and/or asterisk from sample_name
-    '''
-    if sample_name.endswith('*'):
-        return(re.sub('^R(\d+).*', 'Rpoa\\1', sample_name))
-    elif sample_name.endswith('-H'):
-        return(re.sub('-H$', '', sample_name))
-    else:
-        return(sample_name)
 
-
-def find_key_files(wildcards):
+def all_read_files(data_dir):
     '''
-    Return a list of all .txt from data_dir
+    Return the fastq.gz files that matches wildcards.fc
     '''
     data_dir_files = list((dirpath, filenames)
                           for (dirpath, dirnames, filenames)
                           in os.walk(data_dir))
-    all_key_files = []
+    all_read_files = []
     for dirpath, filenames in data_dir_files:
         for filename in filenames:
-            if filename.endswith('.txt'):
-                all_key_files.append(os.path.join(dirpath, filename))
-    return(all_key_files)
+            if filename.endswith('.fastq.gz'):
+                all_read_files.append(os.path.join(dirpath, filename))
+    return(all_read_files)
 
 
-def find_read_file(wildcards):
+def generate_fc_dicts(key_file, data_dir):
     '''
-    Return the fastq.gz file that matches wildcards.fc
+    Parse the key_file and return dicts
     '''
-    data_dir_files = list((dirpath, filenames)
-                          for (dirpath, dirnames, filenames)
-                          in os.walk(data_dir))
-    for dirpath, filenames in data_dir_files:
-        for filename in filenames:
-            if (filename.endswith('.fastq.gz')
-                    and wildcards.fc_name in filename):
-                return(os.path.join(dirpath, filename))
+    # initialise the dictionaries
+    fc_to_indiv = {}
+    fc_to_readfile = {}
+    # find files
+    read_files = all_read_files(data_dir)
+    # read the key data
+    key_data = pandas.read_csv(key_file)
+    grouped_key_data = key_data.groupby('key')
+    # populate dicts
+    for name, group in grouped_key_data:
+        fc_to_indiv[name] = sorted(set(x for x in group['sample_name']))
+        fc_to_readfile[name] = [x for x in read_files
+                                if name in os.path.basename(x)][0]
+    return(fc_to_indiv, fc_to_readfile)
 
 
-def list_fc_names(data_dir):
+def read_keydata_and_write_config(key_file, outdir):
     '''
-    Return a list of  in data_dir without .txt
+    Parse the keyfile and generate config files in outdir
     '''
-    return(
-        [os.path.splitext(os.path.basename(x))[0] for x in find_key_files('')])
-
-
-def read_key_and_write_keydata(key_file, outdir):
-    '''
-    Read the key_file, fix the sample names, and write a csv of keydata to
-    outdir
-    '''
-    # generate filename
-    my_filename = re.sub('\\.txt$', '_keydata.csv', os.path.basename(key_file))
-    my_path = os.path.join(outdir, my_filename)
-    # read keyfile
-    key_data = pandas.read_csv(key_file, delimiter='\t')
-    key_data.dropna(how='all', inplace=True)
-    # remove Ophir samples
-    filtered_keydata = key_data[
-        list(not x.startswith('O') for x in key_data['sample'])]
-    # remove asterisks and '-H' from sample names
-    filtered_keydata['sample_name'] = filtered_keydata['sample'].apply(
-    fix_sample_names)
-    # write the columns of interest to an output file
-    keep_columns = ['flowcell', 'lane', 'barcode', 'sample', 'sample_name']
-    subset = filtered_keydata[keep_columns]
-    output_df = subset.rename(columns={'sample': 'agr_sample_name'})
-    output_df.to_csv(my_path,
-                     sep=',',
-                     header=False,
-                     index=False)
-
-
-def read_keydata_and_write_config(keydata, outdir):
-    my_filename = re.sub('_keydata.csv', '_config', os.path.basename(keydata))
-    my_path = os.path.join(outdir, my_filename)
-    # read keyfile
-    key_data = pandas.read_csv(keydata, delimiter=',')
-    key_data.dropna(how='all', inplace=True)
-    # write the columns of interest to an output file
-    keep_columns = ['barcode', 'sample_name']
-    output_df = key_data[keep_columns]
-    output_df.to_csv(my_path,
-                     sep='\t',
-                     header=False,
-                     index=False)
+    # read the key data
+    key_data = pandas.read_csv(key_file)
+    grouped_key_data = key_data.groupby('key')
+    for name, group in grouped_key_data:
+            config_file = os.path.join(outdir, '{}_config'.format(name))
+            subset = group[['barcode', 'sample_name']]
+            if len(subset) > 0:
+                subset.to_csv(config_file,
+                              sep='\t',
+                              header=False,
+                              index=False)
 
 
 ###########
 # GLOBALS #
 ###########
 
-data_dir = 'data/test_data'
+data_dir = 'data/asw_para_matched'
+key_file = 'data/asw_para_matched/combined_key_data.csv'
+
+#########
+# SETUP #
+#########
+
+fc_to_indiv, fc_to_readfile = generate_fc_dicts(
+    key_file,
+    data_dir)
+all_fcs = list(set(fc_to_indiv.keys()))
+all_indivs = sorted(set(y for x in all_fcs for y in fc_to_indiv[x]))
+
 
 #########
 # RULES #
 #########
-
 rule target:
     input:
-        dynamic(expand('output/020_demux/{fc_name}/{{individual}}.fq.gz',
-                fc_name=list_fc_names(data_dir)))
+        expand('output/020_demux/{individual}.fq.gz',
+               individual=all_indivs)
 
-# 020 demux
-rule demux:
-    input:
-        config = 'output/010_config/{fc_name}_config',
-        reads = find_read_file
-    output:
-        dynamic('output/020_demux/{fc_name}/{individual}.fq.gz')
-    params:
-        outdir = 'output/020_demux/{fc_name}'
-    threads:
-        1
-    log:
-        'output/logs/020_demux/{fc_name}.log'
-    shell:
-        'process_radtags '
-        '-f {input.reads} '
-        '-i gzfastq -y gzfastq '
-        '-b {input.config} '
-        '-o {params.outdir} '
-        '-c -q '
-        '-t 91 '
-        '--inline_null '
-        '--renz_1 apeKI --renz_2 mspI '
-        '&> {log} '
+for fc in all_fcs:
+    rule:
+        input:
+            config = 'output/010_config/{}_config'.format(fc),
+            reads = fc_to_readfile[fc]
+        output:
+            expand('output/020_demux/{individual}.fq.gz',
+                   individual=fc_to_indiv[fc])
+        params:
+            outdir = 'output/020_demux'
+        threads:
+            1
+        log:
+            'output/logs/020_demux/{}.log'.format(fc)
+        shell:
+            'process_radtags '
+            '-f {input.reads} '
+            '-i gzfastq -y gzfastq '
+            '-b {input.config} '
+            '-o {params.outdir} '
+            '-c -q '
+            '-t 91 '
+            '--inline_null '
+            '--renz_1 apeKI --renz_2 mspI '
+            '&> {log} '
 
 # 010 generate stacks config
 rule generate_config_files:
     input:
-        key_file = 'output/010_config/{fc_name}_keydata.csv'
+        key_file = key_file
     threads:
             1
     output:
-        'output/010_config/{fc_name}_config'
+        expand('output/010_config/{fc_name}_config',
+               fc_name=all_fcs)
     params:
         outdir = 'output/010_config'
     run:
         read_keydata_and_write_config(input.key_file, params.outdir)
-
-rule read_key_data:
-    input:
-        key_file = 'data/asw_para_matched/{fc_name}.txt'
-    threads:
-            1
-    output:
-        'output/010_config/{fc_name}_keydata.csv'
-    params:
-        outdir = 'output/010_config'
-    run:
-        read_key_and_write_keydata(input.key_file, params.outdir)
 
