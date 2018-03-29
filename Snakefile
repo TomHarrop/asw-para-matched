@@ -2,8 +2,6 @@
 
 import os
 import pandas
-import pathlib
-
 
 #############
 # FUNCTIONS #
@@ -25,10 +23,6 @@ def all_read_files(data_dir):
     return(all_read_files)
 
 
-def get_full_path(x):
-    return str(pathlib.Path(x).resolve())
-
-
 def generate_fc_dicts(key_file, data_dir):
     '''
     Parse the key_file and return dicts
@@ -46,8 +40,6 @@ def generate_fc_dicts(key_file, data_dir):
         fc_to_indiv[name] = sorted(set(x for x in group['sample_name']))
         fc_to_readfile[name] = [x for x in read_files
                                 if name in os.path.basename(x)][0]
-        # fc_to_keyfile[name] = [x for x in key_files
-        #                        if name in os.path.basename(x)][0]
     return(fc_to_indiv, fc_to_readfile)
 
 
