@@ -3,26 +3,11 @@
 import os
 import pandas
 import pathlib
-import re
 
 
 #############
 # FUNCTIONS #
 #############
-
-# def all_key_files(data_dir):
-#     '''
-#     Return a list of all .txt from data_dir
-#     '''
-#     data_dir_files = list((dirpath, filenames)
-#                           for (dirpath, dirnames, filenames)
-#                           in os.walk(data_dir))
-#     all_key_files = []
-#     for dirpath, filenames in data_dir_files:
-#         for filename in filenames:
-#             if filename.endswith('.txt'):
-#                 all_key_files.append(os.path.join(dirpath, filename))
-#     return(all_key_files)
 
 
 def all_read_files(data_dir):
@@ -51,10 +36,8 @@ def generate_fc_dicts(key_file, data_dir):
     # initialise the dictionaries
     fc_to_indiv = {}
     fc_to_readfile = {}
-    # fc_to_keyfile = {}
     # find files
     read_files = all_read_files(data_dir)
-    #key_files = all_key_files(data_dir)
     # read the key data
     key_data = pandas.read_csv(key_file)
     grouped_key_data = key_data.groupby('key')
