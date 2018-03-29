@@ -24,7 +24,6 @@ key_files <- list.files(data_dir,
                         pattern = ".txt",
                         full.names = TRUE)
 names(key_files) <- sub(".txt", "", basename(key_files))
-print(key_files)
 
 # combine datafiles
 key_data <- rbindlist(lapply(key_files, fread),
