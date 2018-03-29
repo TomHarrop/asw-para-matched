@@ -77,14 +77,56 @@ fc_to_indiv, fc_to_readfile = generate_fc_dicts(
 all_fcs = list(set(fc_to_indiv.keys()))
 all_indivs = sorted(set(y for x in all_fcs for y in fc_to_indiv[x]))
 
-
 #########
 # RULES #
 #########
+
 rule target:
     input:
+        'output/030_optim/filtering/replicate_1_popmap.txt'
+
+
+rule optim_setup:
+    input:
         expand('output/020_demux/{individual}.fq.gz',
-               individual=all_indivs)
+               individual=all_indivs),
+        popmap = 'output/010_config/full_popmap.txt'
+    output:
+        'output/030_optim/filtering/replicate_1_popmap.txt'
+    threads:
+        50
+    params:
+        outdir = 'output/030_optim',
+        indir = 'output/020_demux'
+    log:
+        'output/logs/030_optim/optim_setup.log'
+    shell:
+        'stacks_parameters '
+        '--mode setup '
+        '-o {params.outdir} '
+        '--individuals 8 '
+        '--replicates 3 '
+        '--threads {threads} '
+        '{input.popmap} '
+        '{params.indir} '
+        '&> {log} '
+
+rule generate_popmap:
+    input:
+        key_file = key_file
+    output:
+        popmap = 'output/010_config/full_popmap.txt'
+    threads:
+        1
+    run:
+        key_data = pandas.read_csv(input.key_file)
+        subset = key_data.loc[key_data['population'] != 'GBSNEG',
+                              ['sample_name', 'population']]
+        subset.to_csv(output.popmap,
+                      sep='\t',
+                      header=False,
+                      index=False)
+
 
 for fc in all_fcs:
     rule:
