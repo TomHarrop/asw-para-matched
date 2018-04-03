@@ -83,7 +83,32 @@ all_indivs = sorted(set(y for x in all_fcs for y in fc_to_indiv[x]))
 
 rule target:
     input:
-        'output/030_optim/filtering/replicate_1_popmap.txt'
+        'output/030_optim/stats_Mm/samplestats_combined.csv'
+
+rule optim_mM:
+    input:
+        expand('output/020_demux/{individual}.fq.gz',
+               individual=all_indivs),
+        popmap = 'output/010_config/full_popmap.txt'
+    output:
+        'output/030_optim/stats_Mm/samplestats_combined.csv'
+    threads:
+        50
+    params:
+        outdir = 'output/030_optim',
+        indir = 'output/020_demux'
+    log:
+        'output/logs/030_optim/optim_mM.log'
+    shell:
+        'stacks_parameters '
+        '--mode optim_mM '
+        '-o {params.outdir} '
+        '--individuals 8 '
+        '--replicates 3 '
+        '--threads {threads} '
+        '{input.popmap} '
+        '{params.indir} '
+        '&> {log} '
 
 
 rule optim_setup:
