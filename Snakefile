@@ -101,10 +101,10 @@ rule optim_mM:
         'output/logs/030_optim/optim_mM.log'
     shell:
         'stacks_parameters '
-        '--mode optim_mM '
+        '--mode optim_Mm '
         '-o {params.outdir} '
         '--individuals 8 '
-        '--replicates 3 '
+        '--replicates 2 '
         '--threads {threads} '
         '{input.popmap} '
         '{params.indir} '
