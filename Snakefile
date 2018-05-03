@@ -83,7 +83,63 @@ all_indivs = sorted(set(y for x in all_fcs for y in fc_to_indiv[x]))
 
 rule target:
     input:
-        'output/030_optim/stats_Mm/samplestats_combined.csv'
+        'output/030_optim/compare_defaults/optimised_samplestats_combined.csv'
+
+rule compare_defaults:
+    input:
+        expand('output/020_demux/{individual}.fq.gz',
+               individual=all_indivs),
+        popmap = 'output/010_config/full_popmap.txt'
+    output:
+        'output/030_optim/compare_defaults/optimised_samplestats_combined.csv'
+    threads:
+        50
+    params:
+        outdir = 'output/030_optim',
+        indir = 'output/020_demux'
+    log:
+        'output/logs/030_optim/compare_defaults.log'
+    shell:
+        'stacks_parameters '
+        '--mode compare_defaults '
+        '-m 3 '
+        '-M 3 '
+        '-n 3 '
+        '-o {params.outdir} '
+        '--individuals 8 '
+        '--replicates 2 '
+        '--threads {threads} '
+        '{input.popmap} '
+        '{params.indir} '
+        '&> {log} '
+
+
+rule optim_n:
+    input:
+        expand('output/020_demux/{individual}.fq.gz',
+               individual=all_indivs),
+        popmap = 'output/010_config/full_popmap.txt'
+    output:
+        'output/030_optim/stats_n/samplestats_combined.csv'
+    threads:
+        50
+    params:
+        outdir = 'output/030_optim',
+        indir = 'output/020_demux'
+    log:
+        'output/logs/030_optim/optim_n.log'
+    shell:
+        'stacks_parameters '
+        '--mode optim_n '
+        '-m 3 '
+        '-M 3 '
+        '-o {params.outdir} '
+        '--individuals 8 '
+        '--replicates 2 '
+        '--threads {threads} '
+        '{input.popmap} '
+        '{params.indir} '
+        '&> {log} '
 
 rule optim_mM:
     input:
