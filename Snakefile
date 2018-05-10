@@ -2,8 +2,10 @@
 
 import os
 import pandas
+import pathlib
 import pickle
 import re
+
 
 #############
 # FUNCTIONS #
@@ -62,6 +64,10 @@ def read_keydata_and_write_config(key_file, outdir):
                               index=False)
 
 
+def resolve_path(x):
+    return(str(pathlib.Path(x).resolve()))
+
+
 ###########
 # GLOBALS #
 ###########
@@ -100,7 +106,6 @@ rule ustacks:
     output:
         'output/040_stacks/{individual}.alleles.tsv.gz',
         'output/040_stacks/{individual}.snps.tsv.gz',
-        'output/040_stacks/{individual}.models.tsv.gz',
         'output/040_stacks/{individual}.tags.tsv.gz'
     threads:
         10
