@@ -93,7 +93,7 @@ rule target:
     input:
         'output/030_optim/compare_defaults/optimised_samplestats_combined.csv',
         expand('output/040_stacks/{individual}.alleles.tsv.gz',
-               individual=all_indivs)
+               individual="I12")
 
 rule ustacks:
     input:
@@ -108,9 +108,11 @@ rule ustacks:
         'output/040_stacks/{individual}.snps.tsv.gz',
         'output/040_stacks/{individual}.tags.tsv.gz'
     threads:
-        10
+        60
     log:
         'output/logs/040_stacks/{individual}_ustacks.log'
+    benchmark:
+        'output/benchmarks/040_stacks/{individual}_ustacks.log'
     run:
         with open(input.pickle, 'rb') as f:
             individual_i = pickle.load(f)
@@ -123,7 +125,8 @@ rule ustacks:
               '-i {sample_i} '
               '-m {params.m} '
               '-M {params.M} '
-              '&> {log} ')
+              '&> {log} ',
+              bench_record=bench_record)
 
 rule compare_defaults:
     input:
