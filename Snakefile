@@ -93,7 +93,7 @@ rule target:
     input:
         'output/030_optim/compare_defaults/optimised_samplestats_combined.csv',
         expand('output/040_stacks/{individual}.alleles.tsv.gz',
-               individual="R79")
+               individual="Rpoa67")
 
 rule ustacks:
     input:
