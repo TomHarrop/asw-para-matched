@@ -75,6 +75,10 @@ def resolve_path(x):
 data_dir = 'data/asw_para_matched'
 key_file = 'data/asw_para_matched/combined_key_data.csv'
 
+# containers
+bbduk_container = ('shub:// TomHarrop/singularity-containers:'
+                   'bbmap_38.00')
+
 #########
 # SETUP #
 #########
@@ -269,6 +273,43 @@ rule enumerate_samples:
         # pickle the individual_i dict for other rules to use
         with open(output.pickle, 'wb+') as f:
             pickle.dump(individual_i, f)
+
+
+rule filter_target:
+    input:
+        expand('output/021_filter/{individual}.fq.gz',
+               individual=all_indivs)
+
+rule filter_adaptors:
+    input:
+        fq = 'output/020_demux/{individual}.fq.gz'
+    output:
+        fq = 'output/021_filter/{individual}.fq.gz',
+        stats = 'output/021_filter/stats/{individual}.txt'
+    log:
+        'output/logs/021_filter/{individual}.log'
+    benchmark:
+        'output/benchmarks/021_filter/{individual}.txt'
+    singularity:
+        bbduk_container
+    params:
+        filter = 'data/bbduk_adapters.fa'
+    threads:
+        10
+    shell:
+        'bbduk.sh '
+        'in={input.fq} '
+        'ref={params.filter} '
+        'interleaved=f '
+        'outnonmatch={output.fq} '
+        'stats={output.stats} '
+        'overwrite=t '
+        'ziplevel=9 '
+        'ktrim=r k=23 mink=11 hdist=1 '
+        'findbestmatch=t '
+        'threads={threads} '
+        'minlength=91 '
+        '2> {log}'
 
 
 for fc in all_fcs:
